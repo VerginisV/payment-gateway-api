@@ -1,0 +1,69 @@
+### Requests for the Visual Studio / Rider HTTP client. Run the API first (Development profile).
+@base = http://localhost:5080
+@key = dev_key_change_me
+
+### Successful card payment
+POST {{base}}/payments
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-success-1
+
+{ "amountMinorUnits": 2500, "currency": "EUR", "method": "Card", "merchantReference": "order-1001" }
+
+### Send the same request again: same payment, header Idempotent-Replayed: true
+POST {{base}}/payments
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-success-1
+
+{ "amountMinorUnits": 2500, "currency": "EUR", "method": "Card", "merchantReference": "order-1001" }
+
+### Declined (amount ends in 13)
+POST {{base}}/payments
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-declined-1
+
+{ "amountMinorUnits": 1013, "currency": "EUR", "method": "Card", "merchantReference": "order-1002" }
+
+### Retries: the provider fails twice, then succeeds (amount ends in 42)
+POST {{base}}/payments
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-retry-1
+
+{ "amountMinorUnits": 1042, "currency": "EUR", "method": "Card", "merchantReference": "order-1003" }
+
+### Failover: primary provider is down, the backup takes over (amount ends in 99)
+POST {{base}}/payments
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-failover-1
+
+{ "amountMinorUnits": 1099, "currency": "EUR", "method": "Card", "merchantReference": "order-1004" }
+
+### Pending: the result arrives by webhook (amount ends in 77). Copy providerPaymentId from the response.
+POST {{base}}/payments
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-pending-1
+
+{ "amountMinorUnits": 5077, "currency": "EUR", "method": "Card", "merchantReference": "order-1005" }
+
+### Simulate the provider's signed webhook for the pending payment (Development only)
+POST {{base}}/dev/simulate-webhook
+Content-Type: application/json
+
+{ "provider": "acmepay", "providerPaymentId": "PASTE_PROVIDER_PAYMENT_ID", "type": "payment.succeeded" }
+
+### Get a payment
+GET {{base}}/payments/PASTE_PAYMENT_ID
+X-Api-Key: {{key}}
+
+### Partial refund
+POST {{base}}/payments/PASTE_PAYMENT_ID/refunds
+Content-Type: application/json
+X-Api-Key: {{key}}
+Idempotency-Key: demo-refund-1
+
+{ "amountMinorUnits": 1000 }
